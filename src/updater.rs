@@ -9,7 +9,8 @@ use serde::Deserialize;
 
 /// `releases/latest/download/…` always resolves to the newest published (non-draft,
 /// non-prerelease) release.
-const MANIFEST_URL: &str = "https://github.com/yosoyjaff/modev/releases/latest/download/latest.json";
+const MANIFEST_URL: &str =
+    "https://github.com/yosoyjaff/modev/releases/latest/download/latest.json";
 
 #[derive(Debug, Deserialize)]
 struct Manifest {
