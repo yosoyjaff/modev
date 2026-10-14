@@ -481,9 +481,9 @@ impl Modev {
                             ),
                     )
                     .child(
-                        div().text_color(rgb(TEXT_DIM)).child(
-                            "Device simulator for Ionic/Angular apps with a native inspector.",
-                        ),
+                        div()
+                            .text_color(rgb(TEXT_DIM))
+                            .child("Device simulator for mobile web apps with a native inspector."),
                     )
                     .child(
                         div()

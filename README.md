@@ -4,7 +4,8 @@
 
 <h1 align="center">modev</h1>
 
-<p align="center">A native device simulator for developing Ionic/Angular (and any mobile web) apps.</p>
+<p align="center">A native device simulator for developing mobile web apps: Ionic, Angular, React, Vue, Svelte, React Native
+for Web, PWAs or plain HTML.</p>
 
 modev renders your dev server inside an emulated phone or tablet, as faithfully as Chrome allows:
 CSS viewport, device pixel ratio, safe areas, user agent and touch input. Next to it you get a native inspector modeled on
@@ -85,7 +86,7 @@ The packages are not code-signed yet, so the first launch shows a security warni
 cargo run --release -- http://localhost:8100
 ```
 
-The first argument is the URL to open (default `http://localhost:8100`, Ionic's dev server). The inspector opens on
+The first argument is the URL to open (default `http://localhost:8100`); any dev server works (Vite, Next.js, Angular CLI, Expo web…). The inspector opens on
 demand from the simulator. Closing the simulator quits the app and Chrome.
 
 ## Configuration

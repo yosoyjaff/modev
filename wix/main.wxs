@@ -21,7 +21,7 @@
 
         <Package Id='*'
             Keywords='Installer'
-            Description='Device simulator and DevTools-style inspector for Ionic/Angular apps.'
+            Description='Device simulator and DevTools-style inspector for mobile web apps.'
             Manufacturer='modev contributors'
             InstallerVersion='450'
             Languages='1033'

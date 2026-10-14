@@ -7,7 +7,7 @@ we can agree on the approach. Some design decisions are intentional (see [ARCHIT
 
 1. Install Rust (stable), Google Chrome or Chromium, and optionally `ffmpeg`.
 2. On Linux, install GPUI's system libraries (see [README.md](README.md#build-from-source)).
-3. Start any dev server (e.g. `ionic serve` on :8100) and run:
+3. Start any dev server (e.g. `ionic serve`, `npm run dev`) and run:
 
    ```sh
    cargo run -- http://localhost:8100

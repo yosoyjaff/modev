@@ -3,12 +3,12 @@ name = "modev"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.95"
-description = "Native device simulator and DevTools-style inspector for Ionic/Angular and mobile web apps"
+description = "Native device simulator and DevTools-style inspector for mobile web apps (Ionic, Angular, React, Vue…)"
 license = "MIT"
 repository = "https://github.com/yosoyjaff/modev"
 homepage = "https://github.com/yosoyjaff/modev"
 readme = "README.md"
-keywords = ["simulator", "ionic", "angular", "devtools", "gpui"]
+keywords = ["simulator", "mobile", "web", "devtools", "gpui"]
 categories = ["development-tools", "web-programming", "gui"]
 
 [dependencies]
@@ -35,7 +35,7 @@ name = "modev"
 identifier = "dev.modev.app"
 icon = ["assets/app-icon/macos/modev.icns"]
 category = "public.app-category.developer-tools"
-short_description = "Device simulator for Ionic/Angular apps"
+short_description = "Device simulator for mobile web apps"
 osx_minimum_system_version = "10.15"
 
 # `cargo deb` (release workflow) → modev_<version>_<arch>.deb.

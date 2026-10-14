@@ -1,6 +1,6 @@
 # modev
 
-Desktop tool (Rust + GPUI) for developing Ionic/Angular apps: it shows the web in an emulated "device" as faithfully as possible (viewport, DPR, safe areas, UA, touch), with a native Network and Console inspector.
+Desktop tool (Rust + GPUI) for developing mobile web apps (Ionic, Angular, React, Vue, plain HTML…): it shows the web in an emulated "device" as faithfully as possible (viewport, DPR, safe areas, UA, touch), with a native Network and Console inspector.
 
 ## Commands
 
