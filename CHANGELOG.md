@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-14
+
 ### Added
 
 - Simulator window rendering a URL in headless Chrome with device emulation: CSS viewport, DPR, safe-area insets,
@@ -22,10 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Tools panel: page `prefers-color-scheme`, PNG screenshots (file + clipboard), countdown timer, MP4 recording with
   ffmpeg with optional touch indicators.
 - Settings: light/dark/auto theme, capture folder, remember last device.
-- App icons for macOS, Windows and Linux.
+- App icons for macOS, Windows and Linux; native traffic lights on macOS.
 - Update check against GitHub releases (on launch and from Settings).
 - Release workflow: macOS dmg, Windows msi and zip, Linux deb, rpm and tar.gz, with SHA256SUMS and latest.json.
 
 ### Fixed
 
 - Cookie values with a `%` followed by non-ASCII text no longer crash the Application tab.
+
+[Unreleased]: https://github.com/yosoyjaff/modev/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/yosoyjaff/modev/releases/tag/v0.1.0

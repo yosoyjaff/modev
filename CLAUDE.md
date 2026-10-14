@@ -27,7 +27,7 @@ Desktop tool (Rust + GPUI) for developing mobile web apps (Ionic, Angular, React
 ## Decisions (do not revert without asking)
 
 - UI with GPUI + gpui-kit (`gpui_kit::*`). No phone frame: the web is a box with a border.
-- Window controls like zeron: on Linux the side/order come from the desktop's `button-layout` (`cx.button_layout()`) filtered by `window.window_controls()`; **no maximize**; no macOS traffic lights.
+- Window controls like zeron: on Linux the side/order come from the desktop's `button-layout` (`cx.button_layout()`) filtered by `window.window_controls()`; **no maximize**. macOS: native traffic lights (`ui::titlebar` positions them inside our bar, `TRAFFIC_LIGHTS_W` reserves room; zoom disabled) and no system shadow (`src/macos.rs`: on a transparent window it outlines the whole rectangle like glass).
 - Simulator = one window (one dock icon); bar, web and floating panel fixed to each other. Opened with `cx.open_window` **without** gpui-kit's `Root` (it paints an opaque background and a straight frame).
 - All windows equal: transparent, no `Root`, content in a `rounded(PANEL_RADIUS)` panel + `BORDER` border + `BG_PANEL` background. In the inspector the content goes 3 px in so its rectangular backgrounds don't stick out of the corners.
 - Inspector: native tabs in GPUI imitating Chrome DevTools, not the real embedded frontend. Next: Elements, Sources.

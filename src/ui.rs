@@ -235,7 +235,7 @@ impl Modev {
             net_index: HashMap::new(),
             logs: vec![],
             selected: None,
-            panel_tab: PanelTab::Network,
+            panel_tab: PanelTab::Tools,
             main_window: None,
             dev_tab: DevTab::Network,
             net_detail_tab: NetDetailTab::Headers,
@@ -1010,7 +1010,8 @@ impl Render for SimulatorView {
         // Row 1: title (drag zone) + GNOME-style controls on the right.
         let [left_caps, right_caps] = caption_layout(window, cx);
         // Both sides equally wide so the title stays centered.
-        let caps_w = left_caps.len().max(right_caps.len()) as f32 * (CAPTION_SIZE + CAPTION_GAP);
+        let caps_w = (left_caps.len().max(right_caps.len()) as f32 * (CAPTION_SIZE + CAPTION_GAP))
+            .max(TRAFFIC_LIGHTS_W);
         // Closing the simulator closes modev (and the headless Chrome).
         let quit = |_: &mut Window, cx: &mut App| cx.quit();
         let title_row = div()
@@ -1574,7 +1575,7 @@ impl Modev {
                     size(px(1180.), px(760.)),
                     cx,
                 ))),
-                titlebar: None,
+                titlebar: titlebar(point(px(14.), px(14.))),
                 window_decorations: Some(WindowDecorations::Client),
                 window_min_size: Some(size(px(640.), px(320.))),
                 // Transparent and without gpui-kit's Root (opaque background and straight frame),
@@ -1586,7 +1587,11 @@ impl Modev {
             };
             let opened = cx.open_window(options, {
                 let state = state.clone();
-                move |window, cx| cx.new(|cx| InspectorView::new(state, window, cx))
+                move |window, cx| {
+                    #[cfg(target_os = "macos")]
+                    crate::macos::style_window(window);
+                    cx.new(|cx| InspectorView::new(state, window, cx))
+                }
             });
             state.update(cx, |m, _| {
                 m.inspector_opening = false;
@@ -2100,9 +2105,27 @@ pub(crate) fn caption_layout(window: &Window, cx: &App) -> [Vec<WindowButton>; 2
     [side(layout.left), side(layout.right)]
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "macos")]
+pub(crate) fn caption_layout(_window: &Window, _cx: &App) -> [Vec<WindowButton>; 2] {
+    [vec![], vec![]]
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
 pub(crate) fn caption_layout(_window: &Window, _cx: &App) -> [Vec<WindowButton>; 2] {
     [vec![], vec![WindowButton::Minimize, WindowButton::Close]]
+}
+
+/// Room left at the start of the bar for macOS's native traffic lights.
+pub(crate) const TRAFFIC_LIGHTS_W: f32 = if cfg!(target_os = "macos") { 58.0 } else { 0.0 };
+
+/// macOS: native traffic lights over the content, at `position` (from the window's
+/// top-left corner, inside our own bar). Elsewhere, no system bar.
+pub(crate) fn titlebar(position: Point<Pixels>) -> Option<TitlebarOptions> {
+    cfg!(target_os = "macos").then(|| TitlebarOptions {
+        title: None,
+        appears_transparent: true,
+        traffic_light_position: Some(position),
+    })
 }
 
 /// zeron-style buttons: 24 px, 6 corners, dimmed 16 px icon; close turns red.

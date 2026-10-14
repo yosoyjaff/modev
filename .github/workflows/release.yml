@@ -31,14 +31,22 @@ jobs:
       - name: Pre-create draft release
         # Created once here so the parallel platform jobs don't race to create
         # it. Skipped when a release for the tag already exists (e.g. a re-run
-        # or one published by hand).
+        # or one published by hand). The notes are the version's CHANGELOG.md
+        # section; it stays a draft until every package is uploaded.
         run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '
+            /^## \[/ { if (on) exit; on = index($0, "## [" v "]") == 1; next }
+            on' CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no section for ${GITHUB_REF_NAME#v}"
+            exit 1
+          fi
           ids="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
             -q ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" 2>/dev/null || true)"
           if [ -n "$ids" ]; then
             echo "release for $GITHUB_REF_NAME already exists; skipping"
           else
-            gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --notes-file notes.md
           fi
 
   macos:
@@ -188,6 +196,7 @@ jobs:
         with:
           name: windows-${{ matrix.arch }}
           path: |
+            release/*.msi
             release/*.zip
             meta/*.txt
 
@@ -252,7 +261,7 @@ jobs:
             meta/*.txt
 
   # Uploads every package, plus SHA256SUMS and latest.json, to the tag's draft
-  # release. The draft is published by hand after a look at the notes.
+  # release and publishes it: a draft's downloads are invisible to everyone else.
   publish:
     needs: [macos, windows, linux]
     runs-on: ubuntu-latest
@@ -278,4 +287,6 @@ jobs:
                     sha256: .[4], size: (.[5] | tonumber) } ] }' all-meta.txt > dist/release/latest.json
           cat dist/release/SHA256SUMS dist/release/latest.json
       - name: Upload to the release
-        run: gh release upload "$GITHUB_REF_NAME" dist/release/* --clobber
+        run: |
+          gh release upload "$GITHUB_REF_NAME" dist/release/* --clobber
+          gh release edit "$GITHUB_REF_NAME" --draft=false --latest

@@ -663,6 +663,9 @@ impl Modev {
             .when(!left_caps.is_empty(), |s| {
                 s.child(caption_strip(&left_caps, close).px(px(6.)))
             })
+            .when(TRAFFIC_LIGHTS_W > 0.0, |s| {
+                s.child(div().ml(px(8.)).w(px(TRAFFIC_LIGHTS_W)).flex_none())
+            })
             .child(tab("dt-console", "Console", DevTab::Console, cx))
             .child(tab("dt-network", "Network", DevTab::Network, cx))
             .child(tab(
