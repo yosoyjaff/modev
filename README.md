@@ -16,7 +16,10 @@ DevTools Protocol.
 It is for developers who build hybrid/mobile web apps and want a fast, always-on-top-of-the-dev-server device preview
 without launching an emulator.
 
-<!-- TODO: screenshot -->
+<p align="center">
+  <img src="docs/screenshots/simulator-network.png" width="49%" alt="Simulator with the Network panel">
+  <img src="docs/screenshots/simulator-tools.png" width="49%" alt="Simulator with the Tools panel">
+</p>
 
 ## Features
 
@@ -36,7 +39,9 @@ without launching an emulator.
 - **Settings**: light/dark/auto theme, capture folder, remember last device, update check against GitHub releases
   (on launch and on demand).
 
-<!-- TODO: screenshot -->
+<p align="center">
+  <img src="docs/screenshots/inspector-network.png" alt="Inspector: Network tab with request headers and JWT">
+</p>
 
 ## Install
 
