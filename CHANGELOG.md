@@ -7,6 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- The inspector button next to the URL bar is gone (the inspector opens from the floating panel).
+
+### Added
+
+- Updates install from Settings and modev offers to restart: macOS replaces the app from the dmg, Windows runs the
+  msi on restart, Linux updates the deb/rpm (asks for the password) or the tarball's binary.
+
 ## [0.1.1] - 2026-10-14
 
 ### Changed

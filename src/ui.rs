@@ -822,12 +822,11 @@ impl SimulatorView {
                 .placeholder("http://localhost:8100")
                 .default_value(url)
         });
-        let on_enter =
-            cx.subscribe_in(&url_input, window, |this, _, ev: &InputEvent, _, cx| {
-                if let InputEvent::PressEnter { .. } = ev {
-                    this.go(cx);
-                }
-            });
+        let on_enter = cx.subscribe_in(&url_input, window, |this, _, ev: &InputEvent, _, cx| {
+            if let InputEvent::PressEnter { .. } = ev {
+                this.go(cx);
+            }
+        });
 
         let input = |placeholder: &str, window: &mut Window, cx: &mut Context<Self>| {
             let placeholder = placeholder.to_string();
@@ -1010,7 +1009,6 @@ impl Render for SimulatorView {
 
         let d = self.state.read(cx).device.clone();
         let (reload_state, home_state) = (self.state.clone(), self.state.clone());
-        let devtools_state = self.state.clone();
 
         // Row 1: title (drag zone) + GNOME-style controls on the right.
         let [left_caps, right_caps] = caption_layout(window, cx);
@@ -1082,12 +1080,6 @@ impl Render for SimulatorView {
                 Ico::Search,
                 "Go",
                 cx.listener(|this, _, _, cx| this.go(cx)),
-            ))
-            .child(icon_button(
-                "devtools",
-                Ico::Code,
-                "Inspector",
-                move |_, _, cx| devtools_state.update(cx, |m, cx| m.open_monitor(cx)),
             ));
 
         let toolbar = div()
