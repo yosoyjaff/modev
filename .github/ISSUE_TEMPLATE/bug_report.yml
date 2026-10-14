@@ -1,0 +1,46 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. cargo run -- http://localhost:8100
+        2. Select device "…"
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: OS and version
+      placeholder: "Fedora 42 (Wayland, GNOME) / macOS 15.4 / Windows 11"
+    validations:
+      required: true
+  - type: input
+    id: chrome
+    attributes:
+      label: Chrome/Chromium version
+      placeholder: "google-chrome --version"
+    validations:
+      required: true
+  - type: input
+    id: modev
+    attributes:
+      label: modev version or commit
+      placeholder: "git rev-parse --short HEAD"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots
+      description: Terminal output (lines starting with `[modev]`) and screenshots if relevant.
+      render: text

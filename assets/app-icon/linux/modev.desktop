@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Modev
+Comment=Device simulator for Ionic/Angular apps
+Exec=modev %U
+Icon=modev
+StartupWMClass=modev
+Categories=Development;
+Terminal=false

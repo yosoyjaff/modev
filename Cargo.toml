@@ -1,0 +1,81 @@
+[package]
+name = "modev"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+description = "Native device simulator and DevTools-style inspector for Ionic/Angular and mobile web apps"
+license = "MIT"
+repository = "https://github.com/yosoyjaff/modev"
+homepage = "https://github.com/yosoyjaff/modev"
+readme = "README.md"
+keywords = ["simulator", "ionic", "angular", "devtools", "gpui"]
+categories = ["development-tools", "web-programming", "gui"]
+
+[dependencies]
+anyhow = "1"
+base64 = "0.22"
+chrono = "0.4"
+chromiumoxide = { version = "0.9.1", default-features = false }
+futures = "0.3"
+gpui-kit = "0.7.3"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util"] }
+hayro = "0.8"
+# Update check (latest.json). rustls with ring: no OpenSSL, no cmake/nasm on Windows.
+ureq = { version = "3", default-features = false, features = ["rustls"] }
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = "0.1"
+
+# `cargo bundle --release` (cargo-bundle) → modev.app with its icon.
+[package.metadata.bundle]
+name = "modev"
+identifier = "dev.modev.app"
+icon = ["assets/app-icon/macos/modev.icns"]
+category = "public.app-category.developer-tools"
+short_description = "Device simulator for Ionic/Angular apps"
+osx_minimum_system_version = "10.15"
+
+# `cargo deb` (release workflow) → modev_<version>_<arch>.deb.
+[package.metadata.deb]
+section = "devel"
+extended-description = """Renders a dev server inside an emulated phone or tablet (viewport, DPR, safe areas, \
+user agent, touch) using headless Chrome, with a native Console, Network and Application inspector, \
+screenshots and screen recordings."""
+depends = "$auto"
+recommends = "chromium | google-chrome-stable, ffmpeg"
+assets = [
+    ["target/release/modev", "usr/bin/", "755"],
+    ["assets/app-icon/linux/modev.desktop", "usr/share/applications/", "644"],
+    ["assets/app-icon/linux/hicolor/16x16/apps/modev.png", "usr/share/icons/hicolor/16x16/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/24x24/apps/modev.png", "usr/share/icons/hicolor/24x24/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/32x32/apps/modev.png", "usr/share/icons/hicolor/32x32/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/48x48/apps/modev.png", "usr/share/icons/hicolor/48x48/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/64x64/apps/modev.png", "usr/share/icons/hicolor/64x64/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/128x128/apps/modev.png", "usr/share/icons/hicolor/128x128/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/256x256/apps/modev.png", "usr/share/icons/hicolor/256x256/apps/", "644"],
+    ["assets/app-icon/linux/hicolor/512x512/apps/modev.png", "usr/share/icons/hicolor/512x512/apps/", "644"],
+]
+
+# `cargo generate-rpm` (release workflow) → modev-<version>.<arch>.rpm.
+[package.metadata.generate-rpm]
+assets = [
+    { source = "target/release/modev", dest = "/usr/bin/modev", mode = "755" },
+    { source = "assets/app-icon/linux/modev.desktop", dest = "/usr/share/applications/modev.desktop", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/16x16/apps/modev.png", dest = "/usr/share/icons/hicolor/16x16/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/24x24/apps/modev.png", dest = "/usr/share/icons/hicolor/24x24/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/32x32/apps/modev.png", dest = "/usr/share/icons/hicolor/32x32/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/48x48/apps/modev.png", dest = "/usr/share/icons/hicolor/48x48/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/64x64/apps/modev.png", dest = "/usr/share/icons/hicolor/64x64/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/128x128/apps/modev.png", dest = "/usr/share/icons/hicolor/128x128/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/256x256/apps/modev.png", dest = "/usr/share/icons/hicolor/256x256/apps/modev.png", mode = "644" },
+    { source = "assets/app-icon/linux/hicolor/512x512/apps/modev.png", dest = "/usr/share/icons/hicolor/512x512/apps/modev.png", mode = "644" },
+]
+
+[package.metadata.generate-rpm.recommends]
+ffmpeg = "*"
+
+[profile.dev.package."*"]
+opt-level = 2

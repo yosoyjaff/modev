@@ -1,0 +1,287 @@
+name: Release
+
+# Builds the desktop packages for a version tag and attaches them to its GitHub
+# release, plus SHA256SUMS and the latest.json manifest the in-app update check
+# reads (src/updater.rs). A manual run builds the same packages and keeps them
+# as workflow artifacts only.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TOOLCHAIN: 1.98.1
+  APP_NAME: modev
+  GH_TOKEN: ${{ github.token }}
+  IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the tag matches Cargo.toml
+        if: env.IS_TAG == 'true'
+        run: |
+          version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $version"
+            exit 1
+          fi
+      - name: Pre-create draft release
+        # Created once here so the parallel platform jobs don't race to create
+        # it. Skipped when a release for the tag already exists (e.g. a re-run
+        # or one published by hand).
+        if: env.IS_TAG == 'true'
+        run: |
+          ids="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
+            -q ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" 2>/dev/null || true)"
+          if [ -n "$ids" ]; then
+            echo "release for $GITHUB_REF_NAME already exists; skipping"
+          else
+            gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+
+  macos:
+    needs: prepare
+    name: macos-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            arch: aarch64
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            arch: x86_64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: macos-release-${{ matrix.target }}
+      - name: Install tools
+        # Pinned and --locked: an unlocked install resolves the tool's deps
+        # fresh and a broken transitive release would break the build.
+        run: |
+          cargo install --locked cargo-bundle@0.11.0
+          brew install create-dmg
+      - name: Bundle
+        run: cargo bundle --release --target ${{ matrix.target }}
+      - name: Sign
+        # Optional: runs only when the signing secrets are configured.
+        # Without them the .app is ad-hoc signed and Gatekeeper warns on first launch.
+        env:
+          P12_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          CERT_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+        run: |
+          APP="target/${{ matrix.target }}/release/bundle/osx/${{ env.APP_NAME }}.app"
+          if [ -z "$P12_CERTIFICATE" ]; then
+            echo "::warning::MACOS_CERTIFICATE not set; shipping an unsigned app"
+            codesign --force --deep --sign - "$APP"
+            exit 0
+          fi
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          echo "$P12_CERTIFICATE" | base64 --decode > certificate.p12
+          security import certificate.p12 -k "$KEYCHAIN_PATH" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          # --timestamp talks to Apple's timestamp server, which is occasionally flaky.
+          for attempt in 1 2 3 4 5; do
+            codesign --force --deep --options runtime --timestamp --sign "$CERT_NAME" "$APP" && break
+            [ "$attempt" -eq 5 ] && exit 1
+            echo "codesign attempt $attempt failed; retrying in 15s"
+            sleep 15
+          done
+      - name: Create dmg
+        run: |
+          mkdir -p release
+          create-dmg \
+            --volname "${{ env.APP_NAME }}" \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "${{ env.APP_NAME }}.app" 200 190 \
+            --hide-extension "${{ env.APP_NAME }}.app" \
+            --app-drop-link 600 185 \
+            "release/${{ env.APP_NAME }}-macos-${{ matrix.arch }}.dmg" \
+            "target/${{ matrix.target }}/release/bundle/osx/${{ env.APP_NAME }}.app"
+      - name: Notarize
+        # Optional, like signing.
+        env:
+          AC_USERNAME: ${{ secrets.AC_USERNAME }}
+          AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
+          AC_TEAM_ID: ${{ secrets.AC_TEAM_ID }}
+        run: |
+          if [ -z "$AC_USERNAME" ]; then
+            echo "::warning::Apple notarization secrets not set; skipping"
+            exit 0
+          fi
+          DMG="release/${{ env.APP_NAME }}-macos-${{ matrix.arch }}.dmg"
+          xcrun notarytool submit "$DMG" --apple-id "$AC_USERNAME" --password "$AC_PASSWORD" --team-id "$AC_TEAM_ID" --wait
+          xcrun stapler staple "$DMG"
+      - name: Checksum
+        run: |
+          mkdir -p meta
+          f="release/${{ env.APP_NAME }}-macos-${{ matrix.arch }}.dmg"
+          echo "macos ${{ matrix.arch }} dmg $(basename "$f") $(shasum -a 256 "$f" | awk '{print $1}') $(stat -f%z "$f")" \
+            > meta/macos-${{ matrix.arch }}.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}
+          path: |
+            release/*.dmg
+            meta/*.txt
+
+  windows:
+    needs: prepare
+    name: windows-${{ matrix.arch }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-pc-windows-msvc
+            arch: x86_64
+          - target: aarch64-pc-windows-msvc
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: windows-release-${{ matrix.target }}
+      - name: Build
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"
+        run: |
+          cargo install --locked cargo-wix@0.3.9
+          cargo build --release --locked --target ${{ matrix.target }}
+          # MSI installer from wix/main.wxs (Start menu + desktop shortcuts, upgrades in place).
+          cargo wix --nocapture --no-build --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p release meta
+          base="${{ env.APP_NAME }}-windows-${{ matrix.arch }}"
+          mv target/wix/${{ env.APP_NAME }}-*.msi "release/$base.msi"
+          # Portable zip: the bare executable.
+          cp "target/${{ matrix.target }}/release/${{ env.APP_NAME }}.exe" .
+          7z a "release/$base.zip" "${{ env.APP_NAME }}.exe" LICENSE README.md
+          : > meta/windows-${{ matrix.arch }}.txt
+          for kind in msi zip; do
+            f="release/$base.$kind"
+            echo "windows ${{ matrix.arch }} $kind $base.$kind $(sha256sum "$f" | awk '{print $1}') $(stat -c%s "$f")" \
+              >> meta/windows-${{ matrix.arch }}.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-${{ matrix.arch }}
+          path: |
+            release/*.zip
+            meta/*.txt
+
+  linux:
+    needs: prepare
+    name: linux-${{ matrix.arch }}
+    # The oldest supported Ubuntu sets the glibc baseline of the binary.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x86_64
+          - os: ubuntu-22.04-arm
+            arch: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux dependencies
+        # dpkg-dev provides dpkg-shlibdeps, used by cargo-deb's `$auto` dependencies.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
+            libvulkan-dev libx11-xcb-dev libfontconfig-dev libfreetype-dev dpkg-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: linux-release-${{ matrix.arch }}
+      - name: Build
+        run: |
+          cargo install --locked cargo-deb@3.7.0 cargo-generate-rpm@0.21.0
+          cargo build --release --locked
+      - name: Package
+        run: |
+          mkdir -p release meta
+          # .deb/.rpm: metadata (desktop entry, icons, dependencies) in
+          # [package.metadata.deb] / [package.metadata.generate-rpm].
+          cargo deb --no-build -o "release/${{ env.APP_NAME }}-linux-${{ matrix.arch }}.deb"
+          cargo generate-rpm -o "release/${{ env.APP_NAME }}-linux-${{ matrix.arch }}.rpm"
+          # Tarball: binary + desktop entry + icons, laid out like /usr/local.
+          dir="${{ env.APP_NAME }}-linux-${{ matrix.arch }}"
+          mkdir -p "$dir/bin" "$dir/share/applications" "$dir/share/icons"
+          cp target/release/${{ env.APP_NAME }} "$dir/bin/"
+          cp assets/app-icon/linux/modev.desktop "$dir/share/applications/"
+          cp -r assets/app-icon/linux/hicolor "$dir/share/icons/"
+          cp LICENSE README.md "$dir/"
+          tar -czf "release/$dir.tar.gz" "$dir"
+          : > meta/linux-${{ matrix.arch }}.txt
+          for entry in "$dir.tar.gz tarball" "$dir.deb deb" "$dir.rpm rpm"; do
+            set -- $entry
+            f="release/$1"
+            echo "linux ${{ matrix.arch }} $2 $1 $(sha256sum "$f" | awk '{print $1}') $(stat -c%s "$f")" \
+              >> meta/linux-${{ matrix.arch }}.txt
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.arch }}
+          path: |
+            release/*
+            meta/*.txt
+
+  # Uploads every package, plus SHA256SUMS and latest.json, to the tag's draft
+  # release. The draft is published by hand after a look at the notes.
+  publish:
+    needs: [macos, windows, linux]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Build SHA256SUMS and latest.json
+        run: |
+          set -euo pipefail
+          TAG="$GITHUB_REF_NAME"
+          BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG"
+          cat dist/meta/*.txt > all-meta.txt
+          awk '{print $5"  "$4}' all-meta.txt | sort -k2 > dist/release/SHA256SUMS
+          # latest.json: what the in-app update check reads (src/updater.rs).
+          jq -R -s --arg version "${TAG#v}" --arg tag "$TAG" --arg base "$BASE" \
+            --arg notes "https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG" '
+            { version: $version, tag: $tag, notes: $notes,
+              assets: [ split("\n")[] | select(length > 0) | split(" ")
+                | { os: .[0], arch: .[1], kind: .[2], name: .[3], url: ($base + "/" + .[3]),
+                    sha256: .[4], size: (.[5] | tonumber) } ] }' all-meta.txt > dist/release/latest.json
+          cat dist/release/SHA256SUMS dist/release/latest.json
+      - name: Upload to the release
+        run: gh release upload "$GITHUB_REF_NAME" dist/release/* --clobber
