@@ -1,6 +1,6 @@
 [package]
 name = "modev"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 rust-version = "1.95"
 description = "Native device simulator and DevTools-style inspector for mobile web apps (Ionic, Angular, React, Vue…)"
@@ -21,6 +21,7 @@ gpui-kit = "0.7.3"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "process", "io-util"] }
 hayro = "0.8"
 # Update check (latest.json). rustls with ring: no OpenSSL, no cmake/nasm on Windows.
@@ -34,9 +35,9 @@ raw-window-handle = "0.6"
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 
-# `cargo bundle --release` (cargo-bundle) → modev.app with its icon.
+# `cargo bundle --release` (cargo-bundle) → Modev.app with its icon.
 [package.metadata.bundle]
-name = "modev"
+name = "Modev"
 identifier = "dev.modev.app"
 icon = ["assets/app-icon/macos/modev.icns"]
 category = "public.app-category.developer-tools"

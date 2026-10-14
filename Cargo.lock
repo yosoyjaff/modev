@@ -4001,7 +4001,7 @@ dependencies = [
 
 [[package]]
 name = "modev"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -4015,6 +4015,7 @@ dependencies = [
  "raw-window-handle",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tokio",
  "ureq",
  "winresource",

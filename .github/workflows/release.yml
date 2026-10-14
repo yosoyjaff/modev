@@ -14,6 +14,8 @@ env:
   CARGO_TERM_COLOR: always
   RUST_TOOLCHAIN: 1.98.1
   APP_NAME: modev
+  # macOS bundle (Modev.app): [package.metadata.bundle] name in Cargo.toml.
+  BUNDLE_NAME: Modev
   GH_TOKEN: ${{ github.token }}
 
 jobs:
@@ -88,7 +90,7 @@ jobs:
           P12_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
           CERT_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
         run: |
-          APP="target/${{ matrix.target }}/release/bundle/osx/${{ env.APP_NAME }}.app"
+          APP="target/${{ matrix.target }}/release/bundle/osx/${{ env.BUNDLE_NAME }}.app"
           if [ -z "$P12_CERTIFICATE" ]; then
             echo "::warning::MACOS_CERTIFICATE not set; shipping an unsigned app"
             codesign --force --deep --sign - "$APP"
@@ -113,14 +115,14 @@ jobs:
         run: |
           mkdir -p release
           create-dmg \
-            --volname "${{ env.APP_NAME }}" \
+            --volname "${{ env.BUNDLE_NAME }}" \
             --window-size 800 400 \
             --icon-size 100 \
-            --icon "${{ env.APP_NAME }}.app" 200 190 \
-            --hide-extension "${{ env.APP_NAME }}.app" \
+            --icon "${{ env.BUNDLE_NAME }}.app" 200 190 \
+            --hide-extension "${{ env.BUNDLE_NAME }}.app" \
             --app-drop-link 600 185 \
             "release/${{ env.APP_NAME }}-macos-${{ matrix.arch }}.dmg" \
-            "target/${{ matrix.target }}/release/bundle/osx/${{ env.APP_NAME }}.app"
+            "target/${{ matrix.target }}/release/bundle/osx/${{ env.BUNDLE_NAME }}.app"
       - name: Notarize
         # Optional, like signing.
         env:

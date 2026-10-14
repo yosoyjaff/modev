@@ -29,8 +29,8 @@ fn main() {
         cx.on_action(|_: &Quit, cx| cx.quit());
         cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
         cx.set_menus(vec![Menu {
-            name: "modev".into(),
-            items: vec![MenuItem::action("Quit modev", Quit)],
+            name: "Modev".into(),
+            items: vec![MenuItem::action("Quit Modev", Quit)],
             disabled: false,
         }]);
         let display_height = cx

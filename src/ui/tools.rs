@@ -36,6 +36,8 @@ pub struct Capture {
     pub update_status: Option<String>,
     /// Newer release found by the update check.
     pub update: Option<crate::updater::Update>,
+    /// Update installed (or, on Windows, downloaded): waiting for the restart.
+    pub installed: Option<crate::updater::Installed>,
     update_task: Option<Task<()>>,
     /// Last capture scale sent to the engine.
     pub scale_sent: f64,
@@ -85,6 +87,60 @@ impl Modev {
                 cx.notify();
             });
         }));
+    }
+
+    /// Downloads and installs the update found by `check_updates`, then offers a restart.
+    fn install_update(&mut self, cx: &mut Context<Self>) {
+        let Some(update) = self.capture.update.clone() else {
+            return;
+        };
+        if self.capture.update_task.is_some() {
+            return;
+        }
+        self.capture.update_status = Some(format!("Downloading modev {}…", update.version));
+        cx.notify();
+        let install = cx.background_spawn(async move { crate::updater::install(&update) });
+        self.capture.update_task = Some(cx.spawn(async move |this, cx| {
+            let res = install.await;
+            let _ = this.update(cx, |this, cx| {
+                this.capture.update_task = None;
+                match res {
+                    Ok(installed) => {
+                        this.capture.update_status = Some(if cfg!(windows) {
+                            format!(
+                                "modev {} is ready. Restart to install it.",
+                                installed.version
+                            )
+                        } else {
+                            format!(
+                                "modev {} is installed. Restart to use it.",
+                                installed.version
+                            )
+                        });
+                        this.capture.update = None;
+                        this.capture.installed = Some(installed);
+                    }
+                    Err(e) => {
+                        this.capture.update_status =
+                            Some(format!("Could not install the update: {e:#}"))
+                    }
+                }
+                cx.notify();
+            });
+        }));
+    }
+
+    fn restart_to_update(&mut self, cx: &mut Context<Self>) {
+        let Some(installed) = &self.capture.installed else {
+            return;
+        };
+        match crate::updater::restart(installed) {
+            Ok(()) => cx.quit(),
+            Err(e) => {
+                self.capture.update_status = Some(format!("Could not restart: {e:#}"));
+                cx.notify();
+            }
+        }
     }
 
     pub(super) fn take_screenshot(&mut self) {
@@ -437,18 +493,27 @@ impl Modev {
             .when_some(self.capture.update_status.clone(), |d, s| {
                 d.child(hint_owned(s))
             })
+            .when(self.capture.installed.is_some(), |d| {
+                d.child(
+                    action_row("update-restart", Ico::Refresh, "Restart now", false)
+                        .mt(px(6.))
+                        .on_click(cx.listener(|this, _, _, cx| this.restart_to_update(cx))),
+                )
+            })
             .when_some(self.capture.update.clone(), |d, u| {
                 let notes = u.notes.clone();
-                d.when_some(u.download, |d, url| {
+                // Without a package for this installation, the release page has the downloads.
+                let busy = self.capture.update_task.is_some();
+                d.when(u.package.is_some() && !busy, |d| {
                     d.child(
                         action_row(
-                            "update-download",
+                            "update-install",
                             Ico::Download,
-                            format!("Download {}", u.version),
+                            format!("Install {}", u.version),
                             false,
                         )
                         .mt(px(6.))
-                        .on_click(move |_, _, cx| cx.open_url(&url)),
+                        .on_click(cx.listener(|this, _, _, cx| this.install_update(cx))),
                     )
                 })
                 .child(
