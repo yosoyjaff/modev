@@ -12,6 +12,8 @@ mod updater;
 
 use gpui_kit::*;
 
+actions!(modev, [Quit]);
+
 fn main() {
     let url = std::env::args()
         .nth(1)
@@ -23,6 +25,14 @@ fn main() {
         theme::set_light(theme.is_light(cx), cx);
         theme::install(cx);
         ui::init(cx);
+        // macOS: Cmd+Q and the app menu's Quit.
+        cx.on_action(|_: &Quit, cx| cx.quit());
+        cx.bind_keys([KeyBinding::new("cmd-q", Quit, None)]);
+        cx.set_menus(vec![Menu {
+            name: "modev".into(),
+            items: vec![MenuItem::action("Quit modev", Quit)],
+            disabled: false,
+        }]);
         let display_height = cx
             .primary_display()
             .map(|d| f32::from(d.bounds().size.height))
@@ -47,6 +57,12 @@ fn main() {
         cx.open_window(sim_options, move |window, cx| {
             #[cfg(target_os = "macos")]
             macos::style_window(window);
+            // Closing the simulator closes modev (and the headless Chrome): with the
+            // native close button macOS would only close the window and keep the app alive.
+            window.on_window_should_close(cx, |_, cx| {
+                cx.quit();
+                true
+            });
             cx.new(|cx| ui::SimulatorView::new(state.clone(), window, cx))
         })
         .expect("Could not open the simulator");
