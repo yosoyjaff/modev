@@ -786,6 +786,21 @@ pub struct SimulatorView {
 }
 
 impl SimulatorView {
+    /// Navigates to the URL bar's text (Enter or the search button).
+    fn go(&mut self, cx: &mut Context<Self>) {
+        let mut url = self.url_input.read(cx).value().trim().to_string();
+        if url.is_empty() {
+            return;
+        }
+        if !url.contains("://") {
+            url = format!("http://{url}");
+        }
+        self.state.update(cx, |m, _| {
+            m.url = url.clone();
+            m.send(Command::Navigate(url));
+        });
+    }
+
     pub fn new(state: Entity<Modev>, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let observe = cx.observe_in(&state, window, |this, state, window, cx| {
             let m = state.read(cx);
@@ -808,19 +823,9 @@ impl SimulatorView {
                 .default_value(url)
         });
         let on_enter =
-            cx.subscribe_in(&url_input, window, |this, input, ev: &InputEvent, _, cx| {
+            cx.subscribe_in(&url_input, window, |this, _, ev: &InputEvent, _, cx| {
                 if let InputEvent::PressEnter { .. } = ev {
-                    let mut url = input.read(cx).value().trim().to_string();
-                    if url.is_empty() {
-                        return;
-                    }
-                    if !url.contains("://") {
-                        url = format!("http://{url}");
-                    }
-                    this.state.update(cx, |m, _| {
-                        m.url = url.clone();
-                        m.send(Command::Navigate(url));
-                    });
+                    this.go(cx);
                 }
             });
 
@@ -1073,8 +1078,14 @@ impl Render for SimulatorView {
             }))
             .child(div().flex_1().child(Input::new(&self.url_input).small()))
             .child(icon_button(
-                "devtools",
+                "go",
                 Ico::Search,
+                "Go",
+                cx.listener(|this, _, _, cx| this.go(cx)),
+            ))
+            .child(icon_button(
+                "devtools",
+                Ico::Code,
                 "Inspector",
                 move |_, _, cx| devtools_state.update(cx, |m, cx| m.open_monitor(cx)),
             ));
@@ -1258,10 +1269,17 @@ impl Modev {
             // At its pixel size (1:1), not stretched to the box: Chrome already sends it at
             // the on-screen size and any rescaling in GPUI blurs it.
             let native = frame.size(0);
-            let (fw, fh) = (
+            let (mut fw, mut fh) = (
                 native.width.0 as f32 / self.window_scale,
                 native.height.0 as f32 / self.window_scale,
             );
+            // Chrome never sends more than it renders: where force-device-scale-factor is
+            // ignored (macOS) frames top out at CSS size and, on a Retina screen, would fill
+            // a quarter of the box. Stretched to fit instead (softer, but the right size).
+            let fit = (w / fw).min(h / fh);
+            if fit > 1.01 {
+                (fw, fh) = (fw * fit, fh * fit);
+            }
             screen = screen.child(
                 img(frame)
                     .absolute()
