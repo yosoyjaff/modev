@@ -1,9 +1,9 @@
 name: CI
 
+# Only on version tags (alongside the release workflow).
 on:
   push:
-    branches: [main]
-  pull_request:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

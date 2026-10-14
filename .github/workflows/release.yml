@@ -2,12 +2,10 @@ name: Release
 
 # Builds the desktop packages for a version tag and attaches them to its GitHub
 # release, plus SHA256SUMS and the latest.json manifest the in-app update check
-# reads (src/updater.rs). A manual run builds the same packages and keeps them
-# as workflow artifacts only.
+# reads (src/updater.rs).
 on:
   push:
     tags: ["v[0-9]+.[0-9]+.[0-9]+*"]
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,7 +15,6 @@ env:
   RUST_TOOLCHAIN: 1.98.1
   APP_NAME: modev
   GH_TOKEN: ${{ github.token }}
-  IS_TAG: ${{ startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   prepare:
@@ -25,7 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Check the tag matches Cargo.toml
-        if: env.IS_TAG == 'true'
         run: |
           version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
@@ -36,7 +32,6 @@ jobs:
         # Created once here so the parallel platform jobs don't race to create
         # it. Skipped when a release for the tag already exists (e.g. a re-run
         # or one published by hand).
-        if: env.IS_TAG == 'true'
         run: |
           ids="$(gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
             -q ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id" 2>/dev/null || true)"
@@ -260,7 +255,6 @@ jobs:
   # release. The draft is published by hand after a look at the notes.
   publish:
     needs: [macos, windows, linux]
-    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

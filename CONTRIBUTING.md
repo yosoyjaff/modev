@@ -25,7 +25,8 @@ cargo test
 cargo deny check   # optional: licenses and advisories (cargo install cargo-deny)
 ```
 
-CI runs the same checks on Linux, macOS and Windows, plus an MSRV build and `cargo deny`.
+CI runs these checks (on Linux, macOS and Windows, plus an MSRV build and `cargo deny`) only when a release tag is
+pushed, so run them locally before opening a PR.
 
 ## Code style
 
