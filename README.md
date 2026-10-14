@@ -64,7 +64,7 @@ The packages are not code-signed yet, so the first launch shows a security warni
 
 - **macOS**: "modev can't be opened because Apple cannot check it for malicious software". Right-click the app in
   Applications → **Open** → **Open**, or allow it in **System Settings → Privacy & Security → Open Anyway**. Only
-  needed once. Alternatively: `xattr -dr com.apple.quarantine /Applications/modev.app`.
+  needed once. Alternatively: `xattr -dr com.apple.quarantine /Applications/Modev.app`.
 - **Windows**: SmartScreen shows "Windows protected your PC". Click **More info** → **Run anyway**. Only needed once
   per downloaded file.
 - **Linux**: no warning. Verify the download with `sha256sum -c SHA256SUMS --ignore-missing`.
@@ -112,7 +112,7 @@ Screenshots and recordings go to your Downloads folder by default (configurable 
   is `assets/logo/logo-iOS-Dark-1024x1024@1x.png`.
 - Windows: `build.rs` embeds the `.ico` into the executable (`winresource`); `cargo wix` builds the MSI from
   `wix/main.wxs`.
-- macOS: `cargo bundle --release` ([cargo-bundle](https://github.com/burtonageo/cargo-bundle)) builds `modev.app`.
+- macOS: `cargo bundle --release` ([cargo-bundle](https://github.com/burtonageo/cargo-bundle)) builds `Modev.app`.
 - Linux: `cargo deb` / `cargo generate-rpm` build the packages (metadata in `Cargo.toml`); `assets/app-icon/linux/`
   has the hicolor icons and `modev.desktop`.
 

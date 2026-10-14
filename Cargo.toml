@@ -35,9 +35,9 @@ raw-window-handle = "0.6"
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 
-# `cargo bundle --release` (cargo-bundle) → modev.app with its icon.
+# `cargo bundle --release` (cargo-bundle) → Modev.app with its icon.
 [package.metadata.bundle]
-name = "modev"
+name = "Modev"
 identifier = "dev.modev.app"
 icon = ["assets/app-icon/macos/modev.icns"]
 category = "public.app-category.developer-tools"

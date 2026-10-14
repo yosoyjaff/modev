@@ -57,6 +57,8 @@ pub struct Installed {
     pub version: String,
     /// Windows: the msi, run once modev has exited (its files are in use until then).
     msi: Option<PathBuf>,
+    /// macOS: the new bundle, which may be named differently from the running one.
+    app: Option<PathBuf>,
 }
 
 /// Blocking: run it off the main thread. `Ok(None)` = already up to date.
@@ -156,7 +158,7 @@ fn install_kind() -> Option<&'static str> {
     }
 }
 
-/// `…/modev.app` for `…/modev.app/Contents/MacOS/modev`.
+/// `…/Modev.app` for `…/Modev.app/Contents/MacOS/modev`.
 fn app_bundle(exe: &Path) -> Option<PathBuf> {
     let app = exe.parent()?.parent()?.parent()?;
     (app.extension()? == "app").then(|| app.to_path_buf())
@@ -175,9 +177,9 @@ pub fn install(update: &Update) -> Result<Installed> {
     let file = dir.join(name);
     download(pkg, &file)?;
     let exe = std::env::current_exe()?;
-    let mut msi = None;
+    let (mut msi, mut app) = (None, None);
     match pkg.kind.as_str() {
-        "dmg" => install_dmg(&file, &dir, &exe)?,
+        "dmg" => app = Some(install_dmg(&file, &dir, &exe)?),
         "msi" => msi = Some(file),
         "deb" => run(Command::new("pkexec").args(["dpkg", "-i"]).arg(&file))?,
         "rpm" => run(Command::new("pkexec").args(["rpm", "-U"]).arg(&file))?,
@@ -187,6 +189,7 @@ pub fn install(update: &Update) -> Result<Installed> {
     Ok(Installed {
         version: update.version.clone(),
         msi,
+        app,
     })
 }
 
@@ -220,9 +223,10 @@ fn download(pkg: &Package, to: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Mounts the dmg and swaps the running `.app` for the one inside. The running
-/// process keeps its already-open files; the new bundle is used from the restart on.
-fn install_dmg(dmg: &Path, dir: &Path, exe: &Path) -> Result<()> {
+/// Mounts the dmg and swaps the running `.app` for the one inside, under the new one's
+/// name (`modev.app` became `Modev.app`). The running process keeps its already-open
+/// files; the new bundle is used from the restart on. Returns its path.
+fn install_dmg(dmg: &Path, dir: &Path, exe: &Path) -> Result<PathBuf> {
     let app = app_bundle(exe).context("modev is not running from an .app")?;
     let mount = dir.join("mnt");
     std::fs::create_dir_all(&mount)?;
@@ -232,24 +236,32 @@ fn install_dmg(dmg: &Path, dir: &Path, exe: &Path) -> Result<()> {
         .arg(dmg))?;
     let staged = app.with_extension("app.new");
     let _ = std::fs::remove_dir_all(&staged);
-    let copied = app
-        .file_name()
-        .map(|name| mount.join(name))
-        .context("bad bundle path")
-        .and_then(|src| run(Command::new("ditto").arg(src).arg(&staged)));
+    let copied = std::fs::read_dir(&mount)
+        .context("could not read the dmg")
+        .and_then(|entries| {
+            entries
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .find(|p| p.extension().is_some_and(|e| e == "app"))
+                .context("no app in the dmg")
+        })
+        .and_then(|src| {
+            run(Command::new("ditto").arg(&src).arg(&staged))?;
+            Ok(app.with_file_name(src.file_name().unwrap_or_default()))
+        });
     let _ = run(Command::new("hdiutil")
         .args(["detach", "-quiet"])
         .arg(&mount));
-    copied?;
+    let dest = copied?;
     let old = app.with_extension("app.old");
     let _ = std::fs::remove_dir_all(&old);
-    std::fs::rename(&app, &old).context("could not replace modev.app")?;
-    if let Err(e) = std::fs::rename(&staged, &app) {
+    std::fs::rename(&app, &old).context("could not replace the app")?;
+    if let Err(e) = std::fs::rename(&staged, &dest) {
         let _ = std::fs::rename(&old, &app);
-        return Err(e).context("could not replace modev.app");
+        return Err(e).context("could not replace the app");
     }
     let _ = std::fs::remove_dir_all(old);
-    Ok(())
+    Ok(dest)
 }
 
 /// Extracts the tarball and renames its binary over the running one (Linux allows it:
@@ -319,7 +331,7 @@ pub fn restart(installed: &Installed) -> Result<()> {
         cmd.spawn().context("could not start the updater")?;
     } else {
         // `open` relaunches the bundle as a new app on macOS; elsewhere the binary itself.
-        let launch = match app_bundle(&exe) {
+        let launch = match installed.app.clone().or_else(|| app_bundle(&exe)) {
             Some(app) if cfg!(target_os = "macos") => vec![
                 "open".into(),
                 "-n".into(),
