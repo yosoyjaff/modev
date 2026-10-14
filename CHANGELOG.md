@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-14
+
 ### Changed
 
 - The inspector button next to the URL bar is gone (the inspector opens from the floating panel).
@@ -58,6 +60,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Cookie values with a `%` followed by non-ASCII text no longer crash the Application tab.
 
-[Unreleased]: https://github.com/yosoyjaff/modev/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/yosoyjaff/modev/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/yosoyjaff/modev/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/yosoyjaff/modev/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yosoyjaff/modev/releases/tag/v0.1.0
