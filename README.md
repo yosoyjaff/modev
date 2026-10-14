@@ -104,7 +104,7 @@ Stored under `$XDG_CONFIG_HOME/modev/` (default `~/.config/modev/`):
 | `devices.json` | User-defined devices |
 | `hidden-devices.json` | Presets removed by the user ("Restore" brings them back) |
 
-Screenshots and recordings go to `~/Pictures/modev` by default (configurable in Settings).
+Screenshots and recordings go to your Downloads folder by default (configurable in Settings).
 
 ## Packaging
 

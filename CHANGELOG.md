@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - The inspector button next to the URL bar is gone (the inspector opens from the floating panel).
+- Screenshots and recordings go to the Downloads folder by default (settings still on the old default move too).
 
 ### Added
 

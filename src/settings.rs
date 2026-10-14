@@ -42,25 +42,49 @@ impl Default for Settings {
     }
 }
 
-/// `~/Imágenes/modev` or `~/Pictures/modev` (whichever exists; otherwise the latter).
-fn default_capture_dir() -> PathBuf {
-    let home = std::env::var_os("HOME")
+fn home() -> PathBuf {
+    std::env::var_os(if cfg!(windows) { "USERPROFILE" } else { "HOME" })
         .map(PathBuf::from)
-        .unwrap_or_default();
-    let pictures = ["Imágenes", "Pictures"]
-        .into_iter()
-        .map(|d| home.join(d))
-        .find(|p| p.is_dir())
-        .unwrap_or_else(|| home.join("Pictures"));
-    pictures.join("modev")
+        .unwrap_or_default()
+}
+
+/// The user's Downloads folder: on Linux the XDG one (localized, e.g. `~/Descargas`),
+/// elsewhere `~/Downloads`.
+fn default_capture_dir() -> PathBuf {
+    if cfg!(target_os = "linux") {
+        let xdg = std::process::Command::new("xdg-user-dir")
+            .arg("DOWNLOAD")
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| PathBuf::from(String::from_utf8_lossy(&o.stdout).trim()))
+            // Without a Downloads entry it prints $HOME.
+            .filter(|p| p.is_dir() && *p != home());
+        if let Some(dir) = xdg {
+            return dir;
+        }
+    }
+    home().join("Downloads")
+}
+
+/// Default of older versions (`~/Imágenes/modev`, `~/Pictures/modev`): a setting still
+/// pointing there was never chosen by the user and moves to the new default.
+fn is_old_default(dir: &str) -> bool {
+    ["Imágenes", "Pictures"]
+        .iter()
+        .any(|d| PathBuf::from(dir) == home().join(d).join("modev"))
 }
 
 impl Settings {
     pub fn load() -> Self {
-        config_file("settings.json")
+        let mut s: Self = config_file("settings.json")
             .and_then(|p| std::fs::read(p).ok())
             .and_then(|b| serde_json::from_slice(&b).ok())
-            .unwrap_or_default()
+            .unwrap_or_default();
+        if is_old_default(&s.capture_dir) {
+            s.capture_dir = default_capture_dir().to_string_lossy().into_owned();
+        }
+        s
     }
 
     pub fn save(&self) {
@@ -104,6 +128,13 @@ mod tests {
         assert_eq!(back.capture_dir, "/tmp/caps");
         assert!(!back.remember_device && !back.record_touches && !back.check_updates);
         assert_eq!(back.last_device.as_deref(), Some("Pixel 9"));
+    }
+
+    #[test]
+    fn old_default_capture_dir_is_recognized() {
+        let old = home().join("Pictures").join("modev");
+        assert!(is_old_default(&old.to_string_lossy()));
+        assert!(!is_old_default("/tmp/caps"));
     }
 
     #[test]
