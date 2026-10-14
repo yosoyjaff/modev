@@ -7,6 +7,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-14
+
+### Changed
+
+- The search button next to the URL bar loads the typed URL, like Enter; the inspector button now has a code icon.
+
+### Fixed
+
+- macOS: the web no longer shows at a quarter of its size in the top-left corner on Retina screens.
+
 ## [0.1.0] - 2026-10-14
 
 ### Added
@@ -32,5 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Cookie values with a `%` followed by non-ASCII text no longer crash the Application tab.
 
-[Unreleased]: https://github.com/yosoyjaff/modev/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/yosoyjaff/modev/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/yosoyjaff/modev/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/yosoyjaff/modev/releases/tag/v0.1.0
