@@ -2,6 +2,8 @@ mod adb;
 mod device;
 mod engine;
 mod icons;
+#[cfg(target_os = "macos")]
+mod macos;
 mod settings;
 mod storage;
 mod theme;
@@ -35,7 +37,7 @@ fn main() {
         let sim_size = state.read(cx).simulator_window_size();
         let sim_options = WindowOptions {
             window_bounds: Some(WindowBounds::Windowed(Bounds::centered(None, sim_size, cx))),
-            titlebar: None,
+            titlebar: ui::titlebar(point(px(11.), px(11.))),
             window_decorations: Some(WindowDecorations::Client),
             window_background: WindowBackgroundAppearance::Transparent,
             is_resizable: true,
@@ -43,6 +45,8 @@ fn main() {
             ..Default::default()
         };
         cx.open_window(sim_options, move |window, cx| {
+            #[cfg(target_os = "macos")]
+            macos::style_window(window);
             cx.new(|cx| ui::SimulatorView::new(state.clone(), window, cx))
         })
         .expect("Could not open the simulator");

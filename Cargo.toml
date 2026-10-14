@@ -26,6 +26,11 @@ hayro = "0.8"
 # Update check (latest.json). rustls with ring: no OpenSSL, no cmake/nasm on Windows.
 ureq = { version = "3", default-features = false, features = ["rustls"] }
 
+# macOS window tweaks gpui doesn't expose (src/macos.rs).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSButton", "NSControl", "NSResponder", "NSView", "NSWindow"] }
+raw-window-handle = "0.6"
+
 [target.'cfg(windows)'.build-dependencies]
 winresource = "0.1"
 

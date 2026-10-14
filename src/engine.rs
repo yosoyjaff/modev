@@ -1306,7 +1306,9 @@ async fn spawn_listeners(page: &Page, events: &UnboundedSender<Event>) -> Result
     tokio::spawn(async move {
         while let Some(ev) = nav.next().await {
             if ev.frame.parent_id.is_none() {
-                let _ = tx.send(Event::Navigated(ev.frame.url.clone()));
+                // A failed load commits `chrome-error://chromewebdata/`: show the URL that failed.
+                let url = ev.frame.unreachable_url.as_ref().unwrap_or(&ev.frame.url);
+                let _ = tx.send(Event::Navigated(url.clone()));
             }
         }
     });
