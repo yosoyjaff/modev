@@ -159,16 +159,23 @@ impl Modev {
         self.android.error = reason;
     }
 
-    /// Rotation or keyboard on the device.
+    /// Android: rotation or keyboard on the device. Local: the page must have the emulated
+    /// size; on macOS it was seen rendering at the headless window's (1600×1857) with the
+    /// override set beforehand, the web shrunk into a corner. Re-applied without reloading.
     pub(super) fn on_viewport(&mut self, width: u32, height: u32) {
-        if self.android.session.is_some()
-            && width > 0
-            && height > 0
-            && (width, height) != (self.device.width, self.device.height)
-        {
+        if width == 0 || height == 0 || (width, height) == (self.device.width, self.device.height) {
+            return;
+        }
+        if self.android.session.is_some() {
             self.device.width = width;
             self.device.height = height;
             self.zoom = fit_zoom(&self.device, self.display_height);
+        } else {
+            eprintln!(
+                "[modev] page at {width}x{height}, device {}x{}: re-applying the emulation",
+                self.device.width, self.device.height
+            );
+            self.send(Command::Resize(self.device.clone()));
         }
     }
 

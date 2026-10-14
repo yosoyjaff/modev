@@ -18,6 +18,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Updates install from Settings and modev offers to restart: macOS replaces the app from the dmg, Windows runs the
   msi on restart, Linux updates the deb/rpm (asks for the password) or the tarball's binary.
 
+### Fixed
+
+- macOS: the page sometimes rendered at the headless window's size (the web shrunk into the top-left corner until a
+  reload); the device emulation is re-applied when the page doesn't have the device's size.
+
 ## [0.1.1] - 2026-10-14
 
 ### Changed
