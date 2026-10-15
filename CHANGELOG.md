@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Without Chrome, Chromium or Edge, the simulator explains that modev needs Chrome and links to its download page.
+
 ### Fixed
 
 - Ctrl/Cmd+V pastes the system clipboard into the web (headless Chrome has its own clipboard).

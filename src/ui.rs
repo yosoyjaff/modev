@@ -136,6 +136,8 @@ pub struct Modev {
     inspector_opening: bool,
     display_height: f32,
     status: String,
+    /// The engine found no Chrome: the web area explains it instead of the status.
+    chrome_missing: bool,
     pressed: bool,
     screen_bounds: Rc<Cell<Bounds<Pixels>>>,
     zoom: f32,
@@ -264,6 +266,7 @@ impl Modev {
             inspector_opening: false,
             display_height,
             status: "Starting Chromium…".into(),
+            chrome_missing: false,
             pressed: false,
             screen_bounds: Rc::new(Cell::new(Bounds::default())),
             zoom,
@@ -461,6 +464,10 @@ impl Modev {
             } => self.on_attached(width, height, dpr, url, cx),
             Event::Detached(reason) => self.on_detached(reason, cx),
             Event::Viewport(w, h) => self.on_viewport(w, h),
+            Event::ChromeMissing => {
+                self.chrome_missing = true;
+                self.status = "Google Chrome not found".into();
+            }
         }
         cx.notify();
     }
@@ -1290,6 +1297,43 @@ impl Modev {
                     .h(px(fh))
                     .rounded(px(radius))
                     .object_fit(ObjectFit::Fill),
+            );
+        } else if self.chrome_missing {
+            screen = screen.child(
+                div()
+                    .size_full()
+                    .p(px(24.))
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .justify_center()
+                    .gap(px(10.))
+                    .text_center()
+                    .text_color(rgb(0x555555))
+                    .text_size(px(13.))
+                    .child(
+                        div()
+                            .text_size(px(16.))
+                            .text_color(rgb(0x222222))
+                            .child("modev needs Google Chrome"),
+                    )
+                    .child(
+                        "Pages are rendered by Chrome running in the background. Install Google Chrome \
+                         (Chromium or Microsoft Edge also work) and open modev again.",
+                    )
+                    .child(
+                        div()
+                            .id("get-chrome")
+                            .mt(px(6.))
+                            .px(px(14.))
+                            .py(px(7.))
+                            .rounded(px(8.))
+                            .bg(rgb(0x1a73e8))
+                            .text_color(rgb(0xffffff))
+                            .cursor_pointer()
+                            .child("Download Chrome")
+                            .on_click(|_, _, cx| cx.open_url("https://www.google.com/chrome/")),
+                    ),
             );
         } else {
             screen = screen.child(
