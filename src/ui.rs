@@ -1251,6 +1251,15 @@ impl Modev {
                 this.send(Command::Wheel(x, y, -dx as f64, -dy as f64));
             }))
             .on_key_down(cx.listener(|this, ev: &KeyDownEvent, _, cx| {
+                // Headless Chrome has its own clipboard: paste the system one as typed text.
+                let k = &ev.keystroke;
+                if k.key == "v" && (k.modifiers.platform || k.modifiers.control) {
+                    if let Some(text) = cx.read_from_clipboard().and_then(|c| c.text()) {
+                        this.send(Command::InsertText(text));
+                    }
+                    cx.stop_propagation();
+                    return;
+                }
                 if let Some(c) = key_command(&ev.keystroke) {
                     this.send(c);
                     cx.stop_propagation();

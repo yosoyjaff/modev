@@ -7,6 +7,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Ctrl/Cmd+V pastes the system clipboard into the web (headless Chrome has its own clipboard).
+- Inspecting an Android page shows the console messages and exceptions it logged before, like DevTools.
+
 ## [0.1.2] - 2026-10-14
 
 ### Changed

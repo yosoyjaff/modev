@@ -654,12 +654,19 @@ async fn run(
                     device = d;
                     spawn_frames(&page, &events, &latest).await?;
                     spawn_listeners(&page, &events).await?;
+                    // Attached empties Console/Network: it goes before the replay below.
                     let _ = events.send(Event::Attached {
                         width: device.width,
                         height: device.height,
                         dpr: device.dpr,
                         url,
                     });
+                    // chromiumoxide enabled Runtime when connecting, before these listeners:
+                    // enabling it again makes Chrome replay the page's earlier console
+                    // messages and exceptions, like DevTools does when it opens.
+                    use chromiumoxide::cdp::js_protocol::runtime::DisableParams as RuntimeDisable;
+                    page.execute(RuntimeDisable::default()).await?;
+                    page.execute(RuntimeEnable::default()).await?;
                     start_screencast(&page, &device, capture, true).await?;
                     if let Ok(info) = page_info(&page).await {
                         let _ = events.send(info);
