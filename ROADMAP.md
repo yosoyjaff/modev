@@ -7,16 +7,14 @@ Direction, not promises. No dates. Open an issue to discuss any item before star
 - **More tests**: `storage.rs` parsing and engine helpers; UI-free logic in `ui/net_tools.rs`, `device.rs`,
   `settings.rs` and `updater.rs` is already covered.
 - **Configurable `Accept-Language`**: it is hard-coded to `es-ES` in `engine::apply_device`.
-- **Clearer startup errors**: if Chrome is missing or fails to launch, the engine stops with a status message only;
-  show an actionable error (install Chrome / set its path) and allow a retry.
+- **Clearer startup errors**: a missing Chrome already shows a message with a download link; a Chrome that is found
+  but fails to launch still only shows a status message. Allow a retry without reopening modev.
 - **Chrome path setting**: let users pick the Chrome/Chromium executable.
 
 ## Medium term
 
 - **Inspector: Elements tab** (DOM tree, computed styles, box model).
 - **Inspector: Sources tab**.
-- **In-app update install**: the update check only links to the package; download, verify against `SHA256SUMS`
-  and install from the app.
 - **Packaging**: code signing on Windows, AppImage/Flatpak on Linux, Homebrew/winget manifests. The release
   workflow already builds dmg (signing/notarization when the secrets are set), msi, zip, deb, rpm and tar.gz.
 - **Split large modules**: `ui.rs` (~1,900 lines) and `ui/inspector.rs` (~2,000) into per-panel/per-tab files to

@@ -72,7 +72,7 @@ fn default_capture_dir() -> PathBuf {
 fn is_old_default(dir: &str) -> bool {
     ["Imágenes", "Pictures"]
         .iter()
-        .any(|d| PathBuf::from(dir) == home().join(d).join("modev"))
+        .any(|d| std::path::Path::new(dir) == home().join(d).join("modev"))
 }
 
 impl Settings {

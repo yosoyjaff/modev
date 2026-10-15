@@ -279,6 +279,8 @@ pub enum Event {
     Detached(Option<String>),
     /// Viewport of the screencast (CSS px); on a real device it changes when rotating.
     Viewport(u32, u32),
+    /// No Chrome, Chromium or Edge found: the engine did not start.
+    ChromeMissing,
 }
 
 pub fn spawn(
@@ -321,8 +323,12 @@ async fn run(
         // DPR: without this the frames arrive at CSS size and look blurry.
         // The screencast's max_width/max_height shrink them to each device's DPR.
         .arg(("force-device-scale-factor", "3"))
-        .build()
-        .map_err(anyhow::Error::msg)?;
+        .build();
+    // `build` only fails when it cannot find a Chrome/Chromium/Edge executable.
+    let Ok(config) = config else {
+        let _ = events.send(Event::ChromeMissing);
+        return Ok(());
+    };
     let (browser, mut handler) = Browser::launch(config).await.context("launching Chrome")?;
     tokio::spawn(async move { while handler.next().await.is_some() {} });
 
@@ -654,12 +660,19 @@ async fn run(
                     device = d;
                     spawn_frames(&page, &events, &latest).await?;
                     spawn_listeners(&page, &events).await?;
+                    // Attached empties Console/Network: it goes before the replay below.
                     let _ = events.send(Event::Attached {
                         width: device.width,
                         height: device.height,
                         dpr: device.dpr,
                         url,
                     });
+                    // chromiumoxide enabled Runtime when connecting, before these listeners:
+                    // enabling it again makes Chrome replay the page's earlier console
+                    // messages and exceptions, like DevTools does when it opens.
+                    use chromiumoxide::cdp::js_protocol::runtime::DisableParams as RuntimeDisable;
+                    page.execute(RuntimeDisable::default()).await?;
+                    page.execute(RuntimeEnable::default()).await?;
                     start_screencast(&page, &device, capture, true).await?;
                     if let Ok(info) = page_info(&page).await {
                         let _ = events.send(info);
